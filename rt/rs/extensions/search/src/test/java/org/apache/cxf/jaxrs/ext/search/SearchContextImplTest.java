@@ -55,6 +55,15 @@ public class SearchContextImplTest extends Assert {
         new SearchContextImpl(m).getCondition(Book.class);
     }
     
+    @Test(expected = SearchParseException.class)
+    public void testMaxExpressionLengthPropertyIsHonoured() {
+        Message m = new MessageImpl();
+        m.put("search.block.search.exception", false);
+        m.put(FiqlParser.MAX_EXPRESSION_LENGTH, "10");
+        m.put(Message.QUERY_STRING, "_s=name==12345");
+        new SearchContextImpl(m).getCondition(Book.class);
+    }
+
     @Test
     public void testPlainQuery2() {
         Message m = new MessageImpl();

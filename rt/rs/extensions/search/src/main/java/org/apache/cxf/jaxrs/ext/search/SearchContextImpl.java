@@ -183,7 +183,7 @@ public class SearchContextImpl implements SearchContext {
         // depending on the properties set by a user
         Map<String, String> props = null;
         if (parserProperties == null) {
-            props = new LinkedHashMap<String, String>(4);
+            props = new LinkedHashMap<String, String>(6);
             props.put(SearchUtils.DATE_FORMAT_PROPERTY, 
                       (String)message.getContextualProperty(SearchUtils.DATE_FORMAT_PROPERTY));
             props.put(SearchUtils.TIMEZONE_SUPPORT_PROPERTY, 
@@ -195,6 +195,8 @@ public class SearchContextImpl implements SearchContext {
             // FIQL specific
             props.put(FiqlParser.SUPPORT_SINGLE_EQUALS, 
                       (String)message.getContextualProperty(FiqlParser.SUPPORT_SINGLE_EQUALS)); 
+            props.put(FiqlParser.MAX_EXPRESSION_LENGTH,
+                      (String)message.getContextualProperty(FiqlParser.MAX_EXPRESSION_LENGTH));
         } else {
             props = parserProperties;
         }

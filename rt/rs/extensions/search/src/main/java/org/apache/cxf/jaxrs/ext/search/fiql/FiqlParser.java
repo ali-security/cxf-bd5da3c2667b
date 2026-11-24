@@ -84,9 +84,14 @@ public class FiqlParser<T> implements SearchConditionParser<T> {
         
     public static final String EXTENSION_COUNT = "count";
     public static final String SUPPORT_SINGLE_EQUALS = "fiql.support.single.equals.operator";
+    /**
+     * Context property limiting the length of a FIQL expression. The default is 4 KiB.
+     */
+    public static final String MAX_EXPRESSION_LENGTH = "fiql.max.expression.length";
     
     private static final String EXTENSION_COUNT_OPEN = EXTENSION_COUNT + "(";
     
+    private static final int DEFAULT_MAX_EXPRESSION_LENGTH = 4 * 1024;
     private static final Map<String, ConditionType> OPERATORS_MAP;
     private static final Pattern COMPARATORS_PATTERN;
     private static final Pattern COMPARATORS_PATTERN_SINGLE_EQUALS;
@@ -126,6 +131,8 @@ public class FiqlParser<T> implements SearchConditionParser<T> {
     
     private Map<String, ConditionType> operatorsMap = OPERATORS_MAP;
     private Pattern comparatorsPattern = COMPARATORS_PATTERN;
+
+    private final int maxExpressionLength;
     /**
      * Creates FIQL parser.
      * 
@@ -163,11 +170,31 @@ public class FiqlParser<T> implements SearchConditionParser<T> {
         this.contextProperties = contextProperties == null 
             ? Collections.<String, String>emptyMap() : contextProperties;
         this.beanPropertiesMap = beanProperties;
+        this.maxExpressionLength = parseMaxExpressionLength(
+            this.contextProperties.get(MAX_EXPRESSION_LENGTH));
         if (MessageUtils.isTrue(this.contextProperties.get(SUPPORT_SINGLE_EQUALS))) {
             operatorsMap = new HashMap<String, ConditionType>(operatorsMap);
             operatorsMap.put("=", ConditionType.EQUALS);
             comparatorsPattern = COMPARATORS_PATTERN_SINGLE_EQUALS;
         }
+    }
+
+    private static int parseMaxExpressionLength(String value) {
+        if (value == null || value.trim().length() == 0) {
+            return DEFAULT_MAX_EXPRESSION_LENGTH;
+        }
+        final int length;
+        try {
+            length = Integer.parseInt(value.trim());
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(MAX_EXPRESSION_LENGTH
+                + " must be a positive integer, got: " + value, ex);
+        }
+        if (length < 1) {
+            throw new IllegalArgumentException(MAX_EXPRESSION_LENGTH
+                + " must be a positive integer, got: " + value);
+        }
+        return length;
     }
     
     /**
@@ -193,6 +220,11 @@ public class FiqlParser<T> implements SearchConditionParser<T> {
      * @throws SearchParseException when expression does not follow FIQL grammar
      */
     public SearchCondition<T> parse(String fiqlExpression) throws SearchParseException {
+        if (fiqlExpression.length() > maxExpressionLength) {
+            throw new SearchParseException("Exceeded the maximum FIQL expression length of "
+                + maxExpressionLength + "; the limit can be adjusted with the "
+                + MAX_EXPRESSION_LENGTH + " property");
+        }
         ASTNode<T> ast = parseAndsOrsBrackets(fiqlExpression);
         // System.out.println(ast);
         return ast.build();
